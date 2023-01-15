@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { SMTPClient } from 'emailjs'
-import config from '../../config/smtp.config'
 
 type ResData = {
   code: number
@@ -8,18 +7,30 @@ type ResData = {
   error_message?: string
 }
 
-const client = new SMTPClient(config)
-
 export default function handler(req: NextApiRequest, res: NextApiResponse<ResData>) {
-  const { form_name, to_email, subject, text } = req.body
+  const { user, password, host, port, form_name, to_email, subject, text } = req.body
 
-  if (!to_email || !subject || !text) {
+  if (!user || !password || !host || !port || !to_email || !text) {
     res.status(400).json({ code: 1, message: '缺少参数' })
     return
   }
 
+  // https://github.com/eleith/emailjs#new-smtpclientoptions
+  const smtpConfig = {
+    user,
+    password,
+    host,
+    tls: {
+      ciphers: 'SSLv3',
+    },
+    port: port,
+    timeout: 9500,
+  }
+
+  const client = new SMTPClient(smtpConfig)
+
   const sendData = {
-    from: `${form_name || ''}<${config.user}>`,
+    from: `${form_name || ''}<${smtpConfig.user}>`,
     to: `<${to_email}>`,
     subject,
     text,
